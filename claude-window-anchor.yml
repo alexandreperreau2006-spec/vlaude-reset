@@ -1,0 +1,35 @@
+name: claude-window-anchor
+
+# Heures en UTC. Ici reglees pour l'HEURE D'ETE France (UTC+2).
+# En hiver (UTC+1), enlever 1h a chaque cron : 07:00 / 12:20 / 17:40
+on:
+  schedule:
+    - cron: '0 6 * * *'    # 08:00 Paris
+    - cron: '20 11 * * *'  # 13:20 Paris
+    - cron: '40 16 * * *'  # 18:40 Paris
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: npm install -g @anthropic-ai/claude-code
+
+      - name: Ouvre la fenetre
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: claude -p "ok" --model haiku
+
+      # Garde le repo "actif" : GitHub desactive les crons apres 60j sans commit
+      - name: Heartbeat
+        run: |
+          date -u >> heartbeat.log
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add heartbeat.log
+          git commit -m "heartbeat"
+          git push
